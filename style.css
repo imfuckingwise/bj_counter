@@ -182,3 +182,7 @@ header h1 { font-size: 1rem; color: var(--cyan); letter-spacing: 2px; }
 .r-lose { color: var(--red);    font-weight: 700; }
 .r-push { color: var(--yellow); font-weight: 700; }
 .r-bj   { color: #ffd700;       font-weight: 700; }
+
+.hand-score.s-surr { color: var(--dim); }
+.r-surr { color: var(--dim); font-weight: 700; }
+.hint-waiting { font-size: 1rem; font-weight: 700; color: var(--dim); }
