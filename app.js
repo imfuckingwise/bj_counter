@@ -118,12 +118,10 @@ function betUnits(tc) {
   return 8;
 }
 
-function getAction(total, dealerCard, isPair, isSoft, cards) {
+function getAction(total, dealerCard, isPair, isSoft) {
   const d = (dealerCard === 'T') ? 'T' : dealerCard;
   if (isPair) {
-    // A+A: handTotal gives Soft 12, total/2=6 is wrong — force key=1
-    const isAcePair = cards && cards.length === 2 && cards[0] === 'A' && cards[1] === 'A';
-    const key = isAcePair ? 1 : total / 2;
+    const key = total / 2;
     if (STRAT_PAIR[key] && STRAT_PAIR[key][d]) return STRAT_PAIR[key][d];
   }
   if (isSoft && STRAT_SOFT[total] && STRAT_SOFT[total][d]) return STRAT_SOFT[total][d];
@@ -223,6 +221,9 @@ function handleCard(c) {
   } else if (isNaturalBJ(s.hands[hi])) {
     s.locked[hi] = true;
     showToast(`🃏 席位 ${G.activeSeat + 1} Blackjack！`);
+  } else if (total === 21) {
+    s.locked[hi] = true;
+    showToast(`✨ 席位 ${G.activeSeat + 1} 21點！`);
   } else if (s.doubled[hi]) {
     s.locked[hi] = true;
     showToast('✅ Double 補牌完成，手牌鎖定');
