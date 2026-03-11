@@ -118,10 +118,12 @@ function betUnits(tc) {
   return 8;
 }
 
-function getAction(total, dealerCard, isPair, isSoft) {
+function getAction(total, dealerCard, isPair, isSoft, cards) {
   const d = (dealerCard === 'T') ? 'T' : dealerCard;
   if (isPair) {
-    const key = total / 2;
+    // A+A: handTotal gives Soft 12, total/2=6 is wrong — force key=1
+    const isAcePair = cards && cards.length === 2 && cards[0] === 'A' && cards[1] === 'A';
+    const key = isAcePair ? 1 : total / 2;
     if (STRAT_PAIR[key] && STRAT_PAIR[key][d]) return STRAT_PAIR[key][d];
   }
   if (isSoft && STRAT_SOFT[total] && STRAT_SOFT[total][d]) return STRAT_SOFT[total][d];
@@ -514,89 +516,72 @@ function renderSeats() {
 function renderHint() {
   const panel = document.getElementById('hint-panel');
   const body  = document.getElementById('hint-body');
-
-  // Show only when mySeat is set — always use mySeat data regardless of activeSeat
-  if (G.mySeat === null) { panel.style.display = 'none'; return; }
-
-  const s  = G.seats[G.mySeat];
+  if (G.activeSeat === 'dealer' || G.mySeat === null || G.activeSeat !== G.mySeat) {
+    panel.style.display = 'none'; return;
+  }
+  const s  = G.seats[G.activeSeat];
   const hi = s.activeHand;
   const h  = s.hands[hi];
+  if (!h.length || !G.dealerCards.length || s.locked[hi]) {
+    panel.style.display = 'none'; return;
+  }
   const tc = getTC();
-  panel.style.display = 'block';
 
-  // ── No cards yet ─────────────────────────────────────────────────────
-  if (!h.length) {
-    body.innerHTML = `<div class="hint-waiting">⏳ 等待發牌</div>
-      <div class="hint-bet">建議下注: ${betUnits(tc)} 單位（TC ${tc > 0 ? '+' : ''}${tc.toFixed(2)}）</div>`;
-    return;
-  }
-
-  const { total, soft } = handTotal(h);
-
-  // ── Hand locked (bust / BJ / double / surrender) ──────────────────────
-  if (s.locked[hi]) {
-    const isBust = total > 21;
-    const isBJ   = isNaturalBJ(h);
-    const isSurr = s.surrendered && s.surrendered[hi];
-    let icon = '🔒', label = `STAND ${total}`, cls = '';
-    if (isBust)  { icon = '💥'; label = '爆牌';       cls = 'color:var(--red)'; }
-    if (isBJ)    { icon = '🃏'; label = 'Blackjack!'; cls = 'color:var(--yellow)'; }
-    if (isSurr)  { icon = '🏳️'; label = 'Surrender';  cls = 'color:var(--dim)'; }
-    if (s.doubled[hi] && !isBust && !isSurr) { icon = '✅'; label = `Double ${total}`; cls = 'color:var(--blue)'; }
-    body.innerHTML = `<div class="hint-action" style="${cls}">${icon} ${label}</div>
-      <div class="hint-bet">建議下注: ${betUnits(tc)} 單位</div>`;
-    return;
-  }
-
-  // ── Have cards, no dealer card yet ────────────────────────────────────
-  if (!G.dealerCards.length) {
-    body.innerHTML = `<div class="hint-action" style="color:var(--dim)">⏳ 等待莊家明牌</div>
-      <div class="hint-bet">手牌: ${soft ? 'Soft ' : ''}${total} | 建議下注: ${betUnits(tc)} 單位</div>`;
-    return;
-  }
-
-  // ── Insurance (dealer shows A, 1 card only) ───────────────────────────
+  // ── Insurance check ──────────────────────────────────────────────────
+  // Triggered when dealer shows A with only 1 card revealed
   const dealerShowsAce = G.dealerCards.length === 1 && G.dealerCards[0] === 'A';
-  let insHtml = '';
   if (dealerShowsAce) {
-    const takeIns  = tc >= 3;
-    const insColor = takeIns ? 'var(--yellow)' : 'var(--red)';
-    const insLabel = takeIns ? '✅ 建議買保險 (TC ≥ +3)' : '❌ 不買保險 (TC < +3)';
-    const insSub   = `TC = ${tc > 0 ? '+' : ''}${tc.toFixed(2)}，${takeIns ? '保險 EV 為正' : '保險 EV 為負'}`;
-    const btnCls   = G.insuranceTaken ? 'hint-btn primary' : 'hint-btn';
-    const btnTxt   = G.insuranceTaken ? '🛡️ 已買保險（點擊取消）' : '🛡️ 確認買保險';
-    insHtml = `<div style="border:1px solid ${insColor};border-radius:8px;padding:8px 12px;margin-bottom:10px;">
-      <div style="font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">保險建議</div>
-      <div style="font-size:.95rem;font-weight:700;color:${insColor}">${insLabel}</div>
-      <div style="font-size:.75rem;color:var(--dim);margin-top:2px;">${insSub}</div>
-      <div class="hint-btns" style="margin-top:6px;">
-        <button class="${btnCls}" id="btn-ins">${btnTxt}</button>
+    panel.style.display = 'block';
+    const takeIns = tc >= 3;
+    const insColor   = takeIns ? 'var(--yellow)' : 'var(--red)';
+    const insLabel   = takeIns
+      ? '✅ 買保險 (TC ≥ +3，數牌優勢)'
+      : '❌ 不買保險 (TC < +3，基本策略)';
+    const insSubtitle = takeIns
+      ? `目前 TC = ${tc.toFixed(2)}，牌靴有利，保險期望值為正`
+      : `目前 TC = ${tc.toFixed(2)}，保險長期 EV 為負，建議跳過`;
+    // Also show action hint for the hand
+    const { total, soft } = handTotal(h);
+    const isPair = h.length === 2 && (h[0] === h[1] || (h[0]==='T' && h[1]==='T'));
+    const act = getAction(total, G.dealerCards[0], isPair, soft);
+    let btns = '';
+    if (act === 'D' || act === 'Ds')
+      btns = '<button class="hint-btn primary" id="btn-dbl">X — 確認 Double</button>';
+    if (act === 'SP')
+      btns = '<button class="hint-btn primary" id="btn-sp">V — 確認 Split</button>';
+    body.innerHTML = `
+      <div style="border:1px solid ${insColor};border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+        <div style="font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">🛡 保險建議</div>
+        <div style="font-size:1rem;font-weight:700;color:${insColor}">${insLabel}</div>
+        <div style="font-size:.78rem;color:var(--dim);margin-top:3px;">${insSubtitle}</div>
       </div>
-    </div>`;
+      <div class="hint-action">▶ ${ACT_LABEL[act]}</div>
+      <div class="hint-bet">建議下注: ${betUnits(tc)} 單位</div>
+      ${btns ? '<div class="hint-btns">' + btns + '</div>' : ''}`;
+    if (act === 'D' || act === 'Ds') document.getElementById('btn-dbl').addEventListener('click', confirmDouble);
+    if (act === 'SP') document.getElementById('btn-sp').addEventListener('click', confirmSplit);
+    return;
   }
 
-  // ── Normal strategy ───────────────────────────────────────────────────
-  const isPair = h.length === 2 && (h[0] === h[1] || (h[0] === 'T' && h[1] === 'T'));
-  const act    = getAction(total, G.dealerCards[0], isPair, soft);
+  // ── Normal strategy hint ─────────────────────────────────────────────
+  const { total, soft } = handTotal(h);
+  const isPair = h.length === 2 && (
+    h[0] === h[1] || (h[0] === 'T' && h[1] === 'T')
+  );
+  const act = getAction(total, G.dealerCards[0], isPair, soft);
   let btns = '';
   if (act === 'D' || act === 'Ds')
-    btns += '<button class="hint-btn primary" id="btn-dbl">X — 確認 Double</button>';
+    btns = '<button class="hint-btn primary" id="btn-dbl">X — 確認 Double</button>';
   if (act === 'SP')
-    btns += '<button class="hint-btn primary" id="btn-sp">V — 確認 Split</button>';
-  if (act === 'SR')
-    btns += '<button class="hint-btn primary" id="btn-sr" style="background:var(--red);border-color:var(--red);color:#fff;">C — 確認 Surrender</button>';
-
-  body.innerHTML = `${insHtml}
+    btns = '<button class="hint-btn primary" id="btn-sp">V — 確認 Split</button>';
+  panel.style.display = 'block';
+  body.innerHTML = `
     <div class="hint-action">▶ ${ACT_LABEL[act]}</div>
     <div class="hint-bet">建議下注: ${betUnits(tc)} 單位</div>
     ${btns ? '<div class="hint-btns">' + btns + '</div>' : ''}`;
-
   if (act === 'D' || act === 'Ds') document.getElementById('btn-dbl').addEventListener('click', confirmDouble);
-  if (act === 'SP')  document.getElementById('btn-sp').addEventListener('click', confirmSplit);
-  if (act === 'SR')  document.getElementById('btn-sr').addEventListener('click', confirmSurrender);
-  if (dealerShowsAce) document.getElementById('btn-ins').addEventListener('click', confirmInsurance);
+  if (act === 'SP') document.getElementById('btn-sp').addEventListener('click', confirmSplit);
 }
-
 
 function render() {
   renderCountBar();
