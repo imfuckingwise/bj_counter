@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BJ Counter</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="toast"></div>
+
+<header>
+  <h1>♠ BJ COUNTER</h1>
+  <div class="hctrl">
+    <select id="deck-sel">
+      <option value="6">6 副牌</option>
+      <option value="8" selected>8 副牌</option>
+    </select>
+  </div>
+</header>
+
+<!-- 計牌狀態 -->
+<div class="panel">
+  <div class="ptitle">計牌狀態</div>
+  <div id="count-bar">
+    <div><div class="stat-lbl">流水數 RC</div><div class="stat-val" id="rc-val">0</div></div>
+    <div><div class="stat-lbl">真數 TC</div><div class="stat-val" id="tc-val">0.00</div></div>
+    <div><div class="stat-lbl">玩家優勢</div><div class="stat-val" id="adv-val">-0.50%</div></div>
+    <div><div class="stat-lbl">剩餘副數</div><div class="stat-val" id="rem-val">8.0</div></div>
+  </div>
+</div>
+
+<!-- 牌桌 -->
+<div class="panel">
+  <div class="ptitle">🎰 牌桌</div>
+  <div id="table">
+    <div id="dealer-zone">
+      <div class="zone-label">🤖 莊家</div>
+      <div id="dealer-area"></div>
+    </div>
+    <div id="seats"></div>
+  </div>
+</div>
+
+<!-- 快捷輸入 -->
+<div class="panel">
+  <div class="ptitle">快捷輸入</div>
+  <div class="sub-label">🃏 牌組</div>
+  <div id="card-grid">
+    <button class="kk" data-card="2">2<sub>+1</sub></button>
+    <button class="kk" data-card="3">3<sub>+1</sub></button>
+    <button class="kk" data-card="4">4<sub>+1</sub></button>
+    <button class="kk" data-card="5">5<sub>+1</sub></button>
+    <button class="kk" data-card="6">6<sub>+1</sub></button>
+    <button class="kk" data-card="7">7<sub>0</sub></button>
+    <button class="kk" data-card="8">8<sub>0</sub></button>
+    <button class="kk" data-card="9">9<sub>0</sub></button>
+    <button class="kk blue" data-card="T">10/JQK<sub>−1</sub></button>
+    <button class="kk red"  data-card="A">A<sub>−1</sub></button>
+  </div>
+  <div class="divider"></div>
+  <div class="sub-label">⚙️ 操作</div>
+  <div id="ctrl-row">
+    <button class="kk purple" id="btn-m">M<sub>我的席位</sub></button>
+    <button class="kk yellow" id="btn-r">R<sub>下一局</sub></button>
+    <button class="kk green"  id="btn-n">N<sub>新牌靴</sub></button>
+    <button class="kk cyan"   id="btn-u">⌫<sub>撤銷</sub></button>
+  </div>
+</div>
+
+<!-- 策略建議 -->
+<div class="panel" id="hint-panel">
+  <div class="ptitle">策略建議</div>
+  <div id="hint-body"></div>
+</div>
+
+<!-- 賽局紀錄 -->
+<div class="panel">
+  <div id="log-header">
+    <div class="ptitle">📋 賽局紀錄</div>
+    <div style="display:flex;gap:8px;">
+      <button class="export-btn" id="btn-clear">🗑 清空</button>
+      <button class="export-btn" id="btn-export">⬇ 匯出 CSV</button>
+    </div>
+  </div>
+  <div id="log-empty">尚無紀錄，按「下一局」後自動記錄</div>
+  <div id="log-list"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
