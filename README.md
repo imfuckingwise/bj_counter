@@ -1,6 +1,7 @@
 # ♠️ BJ Counter  
   
-一個基於瀏覽器的黑傑克計牌訓練器，實現 Hi-Lo 計牌系統和基本策略建議。  
+一個基於瀏覽器的黑傑克計牌訓練器，實現 Hi-Lo 計牌系統和基本策略建議。 
+🔗 **[立即使用 (GitHub Pages 連結)](https://imfuckingwise.github.io/bj_counter)**  
   
 ## ✨ 功能特點  
   
