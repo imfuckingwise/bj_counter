@@ -99,9 +99,9 @@
   
 ### 本地開發  
 ```bash  
-# 克隆項目  [header-1](#header-1)
+# 克隆項目 
 git clone https://github.com/imfuckingwise/bj_counter.git  
   
-# 直接打開 index.html  [header-2](#header-2)
-# 或使用本地服務器  [header-3](#header-3)
+# 直接打開 index.html 
+# 或使用本地服務器  
 python -m http.server 8000  
